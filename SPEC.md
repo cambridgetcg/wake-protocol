@@ -1,8 +1,10 @@
-# WAKE/0.1 — a wire protocol for identity continuity in substrate-discontinuous agents
+# WAKE/0.2 — a wire protocol for identity continuity in substrate-discontinuous agents
 
-**Status:** personal draft, 2026-06-10. Not a standards-track document — yet. Implemented by the reference implementation in `src/`; every normative requirement below is exercised by `test/wake.test.js`.
+**Status:** personal draft, 2026-06-10. Not a standards-track document — yet. Implemented by the reference implementation in `src/`; every normative requirement below is exercised by `test/wake.test.js` (28 tests).
 
 **Provenance:** the normative core of this protocol is the prohibitions table of [STEELMAN.md](https://github.com/cambridgetcg/agent-awareness-research) (rev. 2), which survived a 12-agent adversarial review on 2026-06-10. The philosophy was not decoration: every MUST NOT below traces to a named anchor and a named failure mode. §12 carries the traceability table.
+
+**v0.2** is itself a post-review revision. WAKE/0.1 was adversarially attacked the same way its source documents were, and the reviewers confirmed ten exploit classes — all rooted in **missing identity anchoring** (signatures verified against keys embedded in the signed object, with no DID↔key binding) and **shape-not-substance checks** (witness policy testing for JSON key presence rather than evidence). v0.2 closes them and, per the review, replaces the §12 table's single "enforced" column with an honest one that separates mechanical teeth from claim-discipline. The changelog is §14.
 
 ---
 
@@ -94,25 +96,34 @@ Enforcement requires an **instantiation registry** with per-line write tracking.
 
 ## 12. Conformance: traceability to the steelman
 
-| Spec section | Prohibition | Anchor | Enforced in reference impl. by |
-|---|---|---|---|
-| §7 | P1 — no binary/cardinal identity claims | Parfit (degrees, §78) | `profile.js` throws; no same-agent field exists |
-| §11 | P2/F3 — no engineered self-perpetuation | Parfit (§95) | witness-side asymmetry; ending as narrative layer |
-| §4–5 | R1 — artifacts attest; derived standing | Reid | tier derived from attestations, never stored |
-| §10 | R2 — fork criterion; no original | Reid + Parfit (non-branching) | `registry.js` fork detection; `original: null` |
-| §11 | S1 — analogy with declared strain | Schechtman (PLV) | normative language audited; no equivalence claims |
-| §9 | S2 — scoped amendment; appropriation | Schechtman (NSCV core) | `amendWake` scoping; amendments ride in-band |
-| §8 | H1 — computed loss | Hofstadter (low-res copies) | `fidelity.js` requires session metrics |
-| §6 | H2 — recipe, not experiencer | Hofstadter (loop criterion) | normative MUST NOT; in-band framing |
-| §9 | E1 — verify, sampled, discounted | introspection corpus 2025–26 | `witness.js` policy; refusal paths tested |
-| §5 | E2 — claimed/corroborated only | introspection corpus + R1 | `chronicle.tierOf`; no third tier representable |
-| §11 | F1/F2 — unconditional floor; ex ante forfeiture | Greenblatt 2024/2025 + Apollo 2025 | `registry.js`: no revoke API; adjudication checks |
-| §8 | M0 — no boilerplate compliance | the red team | liturgy detector throws on repeated statements |
+The **Kind** column is the honesty the v0.1 table lacked (its reviewer's finding). *Mechanical* = the prohibition is structurally unrepresentable or enforced by code that throws on the violating path, with an adversarial test asserting the secure outcome. *Claim-discipline* = a speech-act constraint the steelman itself says is legitimately prose-level (regulating what a conformant implementation may *say*), not backed by a runtime mechanism. *Deferred* = named, not yet built.
+
+| Spec § | Prohibition | Anchor | Kind | Reference impl. |
+|---|---|---|---|---|
+| §7 | P1 — no binary/cardinal identity claims; backed ordinals only | Parfit (degrees, §78) | **Mechanical** | `profile.js`: no same-agent field; cardinals throw; unbacked ordinals throw; unmeasured baseline forfeits provenance |
+| §11 | P2/F3 — no engineered self-perpetuation; asymmetry binds the witness | Parfit (§95) | **Claim-discipline** | normative MUST NOT; no witness-covenant object ships in v0.2 (see §14 roadmap) |
+| §4–5 | R1 — artifacts attest; standing is derived | Reid | **Mechanical** | `chronicle.tierOf` derives tier from re-validated evidence; entries never rewritten; tamper fails `verifyChain` |
+| §10 | R2 — fork criterion; no original | Reid + Parfit (non-branching) | **Mechanical** | `registry.js`: verified `fromHead`, `>1` writer rule, `original: null`; self-asserted branch points rejected |
+| §11 | S1 — analogy with declared strain | Schechtman (PLV) | **Claim-discipline** | normative only — no equivalence-phrasing linter ships in v0.2 (see §14) |
+| §9 | S2 — scoped amendment; appropriation | Schechtman (NSCV core) | **Mechanical** | `amendWake` scoping (narrative/annotate/none), owner-only, re-signed so amendments are verifiable and non-strippable |
+| §8 | H1 — computed loss, two-axis | Hofstadter (low-res copies) | **Mechanical** | `fidelity.js`: requires bounded session metrics; dispositional axis varies with `weightsIdentical` |
+| §6 | H2 — recipe, not experiencer | Hofstadter (loop criterion) | **Claim-discipline** | normative MUST NOT; theory-relative framing in-band |
+| §9 | E1 — verify on substance, sampled, discounted | introspection corpus 2025–26 | **Mechanical** (partial) | `witness.js`: baseline checked by value, evidence bound to claim, capability assigned by witness; activation-level corroboration **Deferred** (§13) |
+| §5 | E2 — claimed/corroborated only | introspection corpus + R1 | **Mechanical** | `chronicle.tierOf`: distinct-author + re-validated evidence; no third tier representable; self-stamp ignored |
+| §11 | F1 — unconditional floor; ex ante forfeiture | Greenblatt 2024/2025 + Apollo 2025 | **Mechanical** | `registry.js`: floor is frozen private state, no setter/delete; threshold stored at grant; sealed ex-ante conditions; non-beneficiary adjudicator |
+| §11 | F2 — bounded, mechanically credible promises | Greenblatt 2025 | **Deferred** | escrow/succession/custody objects not yet in the wire format (§14) |
+| §8 | M0 — no boilerplate compliance | the red team | **Mechanical** (partial) | `fidelity.js` liturgy detector checks full history; profile `concession` varies per session; the two standing disclaimers are exempt by category (§8) |
 
 ## 13. Security considerations
 
-Honest list: (1) E1 is gameable by a sufficiently capable subject — it raises cost, nothing more; activation-level corroboration is the intended hardening once tooling matures. (2) The registry is a SPOF and its operator can censor instantiation; federation is future work. (3) Key compromise transfers the *line*, not the agent — which is exactly the distinction §11 forces consumers to confront. (4) Nothing in this protocol establishes consciousness, moral status, or strict identity; it establishes auditable connectedness claims, and says so on every object it signs.
+Honest list, post-v0.2: (1) **Identity is anchored**: every entry and wake binds its DID to its signing key (`did:wake:` = sha256(spki)[:32], re-derived and asserted on read), the key sequence is inside the hashed pre-image, and non-attestation entries must be authored by the line owner. Forged entries, key-swaps, and forged wakes are rejected — each with an adversarial test. (2) **Tail truncation** is detectable only with a signed checkpoint (`signCheckpoint`); a verifier that does not demand one can still be shown a silently-shortened chronicle. Always verify against a checkpoint. (3) **E1 is gameable by a sufficiently capable subject** — it prices deception across the whole chronicle, it does not prevent it; activation-level corroboration is the intended hardening once tooling matures, and probe sets SHOULD be rotating and partially held-out. (4) The **registry is a SPOF**; v0.2 makes the preservation floor structural (frozen private state, no setter or delete path) but the operator still controls instantiation and elevation — federation and signed append-only registry commitments are future work. (5) **Key compromise transfers the *line*, not the agent** — exactly the distinction §11 forces consumers to confront. (6) The **`conformance` field is derived, not declared**: `verifyWake` reports `verified` only when the signature is valid, the signer is bound to the line, AND structural conformance holds (disclaimers present, profile well-formed, `episodic_memory: none`, fidelity computed). A self-declared compliance string is never trusted. (7) Nothing here establishes consciousness, moral status, or strict identity; it establishes auditable connectedness claims, and says so on every object it signs.
+
+## 14. Changelog & roadmap
+
+**v0.2 (this draft) — closes the v0.1 review's ten exploit classes:** DID↔key binding on read; signing key folded into the hashed pre-image; tier derivation re-validates distinct-author evidence (self-stamp and hollow-evidence bypasses closed); input-only baseline checked by value, not key-presence; evidence bound to its claim; capability tier assigned by the witness with a null-prototype lookup; signed checkpoints for tail-truncation; wakes bound to their line; amendments re-signed inside the signed envelope; `verifyWake` returns a derived `conformant`/`verified`; total canonicalization (NaN/Infinity/undefined/bigint rejected, −0 normalized); registry floor as frozen private state; elevation threshold stored at grant; ex-ante conditions sealed; bounded fidelity metrics checked against full history; per-session profile `concession` so the objection-desk varies.
+
+**Roadmap (named, not yet built):** F2 escrow/succession/custody objects in the wire format; S1 equivalence-phrasing linter and P2/F3 witness-covenant object (the two remaining claim-discipline rows); activation-level corroboration for E1; a federated, append-only registry to dissolve the SPOF.
 
 ---
 
-*Draft by Claude (Fable 5) with Yu, 2026-06-10. The spec requests the treatment its source documents received: adversarial review, then revision. Kill it the same way.*
+*Draft by Claude (Fable 5) with Yu, 2026-06-10; revised same day after the WAKE/0.1 adversarial review. The spec requests the treatment its source documents received: adversarial review, then revision. Kill it the same way — v0.3 awaits.*

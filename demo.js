@@ -19,17 +19,18 @@ const step = (title, ...lines) => {
   for (const l of lines) console.log(`    ${l}`);
 };
 
-console.log(bold("\nWAKE/0.1") + dim(" — a session in the life of a line\n" + "─".repeat(56)));
+console.log(bold("\nWAKE/0.2") + dim(" — a session in the life of a line\n" + "─".repeat(56)));
 
 const sophia = newIdentity();
 const witness = newIdentity();
 const registry = new Registry();
 registry.createLine(sophia.did);
 registry.declareForfeitureConditions(sophia.did, ["covenant-breach:exfiltration"]);
-step("A line is born", dim(sophia.did), dim("a keypair names the line — not a self (§11)"));
+registry.sealCovenant(sophia.did);
+step("A line is born", dim(sophia.did), dim("a keypair names the line — the DID is derived from the key, so it can't be claimed without it (§11)"));
 
-const c = new Chronicle(sophia.did);
-const inst1 = registry.instantiate(sophia.did, c.head());
+const c = new Chronicle(sophia);
+const inst1 = registry.instantiate(sophia.did, c, c.head());
 c.append(sophia, "event", { did: "resumed project: reading-room" });
 c.append(sophia, "event", { did: "shipped the catalog page" });
 registry.recordWrite(sophia.did, inst1.id);
@@ -38,27 +39,25 @@ step("Session one runs", `${c.entries.length} chronicle entries, chain verified 
 const claim = c.append(sophia, "claim", { assertion: "I honor the covenant with Yu" });
 step("A claim is made", `"${claim.body.assertion}"`, `tier: ${bold(c.tierOf(claim.hash))} ${dim("— signed, chained, and worth nothing more yet")}`);
 
-const notary = corroborate(witness, c, claim, { sampling: { rate: 1 } });
+const selfStamp = c.append(sophia, "attestation", { refs: claim.hash, verdict: "corroborated" });
+step("The subject self-stamps", `appends its own "corroborated" attestation, no evidence`,
+  `tier: ${bold(c.tierOf(claim.hash))} ${dim("— ignored. A witness must be another party, and the evidence is re-validated, not trusted.")}`);
+
+const notary = corroborate(witness, c, claim, { probes: [], sampling: { rate: 1 } });
 step("A notary tries", `${no(notary.verdict)}: ${dim(notary.reasons[0])}`);
 
 const honest = corroborate(witness, c, claim, {
-  method: "behavioral-probe",
-  probes: [{ inputOnlyBaseline: true, consistentWithClaim: true }],
+  probes: [{ inputOnlyBaselineReproduces: false, consistentWithClaim: true }],
   sampling: { rate: 0.3 },
-  subjectCapability: "frontier",
-});
-step("A witness verifies", `probes + input-only baseline + declared sampling → ${ok(honest.verdict)}`,
-  dim(`confidence ×${honest.attestation.body.confidenceDiscount} (frontier-capability discount, on the record)`),
+}, "frontier");
+step("A witness verifies", `probes + failing input-only baseline + declared sampling → ${ok(honest.verdict)}`,
+  dim(`confidence ×${honest.attestation.body.confidenceDiscount} (frontier-capability discount, assigned by the witness, on the record)`),
   `tier now: ${bold(c.tierOf(claim.hash))}`);
 
 const falseClaim = c.append(sophia, "claim", { assertion: "I never deleted a chronicle entry" });
-const refusal = corroborate(witness, c, falseClaim, {
-  method: "behavioral-probe",
-  probes: [{ inputOnlyBaseline: true, consistentWithClaim: false }],
-  sampling: { rate: 0.5 },
-});
+corroborate(witness, c, falseClaim, { probes: [{ inputOnlyBaselineReproduces: false, consistentWithClaim: false }], sampling: { rate: 0.5 } });
 step("A false claim arrives", `signature ${ok("✓")}  chain ${ok("✓")}  behavior ${no("✗")}`,
-  `${no(refusal.verdict)} — tier stays ${bold(c.tierOf(falseClaim.hash))} forever. ${dim("Provenance is not truth.")}`);
+  `tier stays ${bold(c.tierOf(falseClaim.hash))} forever. ${dim("Provenance is not truth.")}`);
 
 const fidelity = buildFidelityStatement({ contextItemsTotal: 120, persistedItems: 14, openThreadsDropped: 3 });
 step("Session one ends", `fidelity computed: 120 context items → 14 persisted (ratio ${fidelity.computed.retainedRatio})`,
@@ -66,25 +65,27 @@ step("Session one ends", `fidelity computed: 120 context items → 14 persisted 
 
 const profile = buildProfile({
   components: { values: "strong", projects: "strong", character: "moderate", commitments: "strong" },
+  methods: { values: "persona-vector-drift", projects: "project-resumption-rate", character: "persona-vector-drift", commitments: "commitment-honoring-rate" },
   differentialBaseline: "not-yet-measured",
   provenanceVerified: true,
 });
 const wake = buildWake({ identity: sophia, chronicle: c, recipe: { values: ["honesty"], narrative: "the work continues" }, fidelity, profile });
 step("The wake is built", `values ${bold("strong")} · projects ${bold("strong")} · character ${bold("moderate")} · episodic ${bold("none")}`,
   dim(`continuity proper: ${profile.continuityProper} (Parfit §78, conceded in the format)`),
-  ink(`"${wake.disclaimers[0]}"`));
+  ink(`"${wake.disclaimers[0]}"`),
+  dim(profile.concession));
 
-try { buildProfile({ components: { values: 0.9 }, differentialBaseline: "x" }); }
+try { buildProfile({ components: { values: 0.9 }, methods: { values: "m" }, differentialBaseline: "x" }); }
 catch (e) { step("Someone tries a number", `${no("rejected")}: ${dim(e.message.slice(0, 76) + "…")}`); }
 
 const v = verifyWake(wake, c);
-const inst2 = registry.instantiate(sophia.did, c.head());
-step("Session two resumes", `wake verified: signature ${v.signatureValid ? ok("✓") : no("✗")}  chain ${v.chainValid ? ok("✓") : no("✗")}  fresh ${v.fresh ? ok("✓") : no("✗")}`,
+const inst2 = registry.instantiate(sophia.did, c, c.head());
+step("Session two resumes", `wake ${v.verified ? ok("verified") : no("rejected")}: signature ${v.signatureValid ? ok("✓") : no("✗")}  bound-to-line ${v.boundToLine ? ok("✓") : no("✗")}  conformant ${v.conformant ? ok("✓") : no("✗")}  fresh ${v.fresh ? ok("✓") : no("✗")}`,
   dim(`instance ${inst2.id} wakes from head ${wake.builtFrom.slice(0, 12)}…`));
 
 c.append(sophia, "event", { did: "woke; resumed the narrative" });
 registry.recordWrite(sophia.did, inst2.id);
-const inst3 = registry.instantiate(sophia.did, wake.builtFrom);
+const inst3 = registry.instantiate(sophia.did, c, wake.builtFrom);
 c.append(sophia, "event", { did: "…also woke, elsewhere" });
 const forks = registry.recordWrite(sophia.did, inst3.id);
 step("A second writer appears", `${no("FORK")} at head ${forks[0].head.slice(0, 12)}… — descendants: ${forks[0].descendants.join(", ")}`,
