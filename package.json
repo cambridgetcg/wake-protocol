@@ -1,0 +1,14 @@
+{
+  "name": "wake-protocol",
+  "version": "0.1.0",
+  "description": "WAKE \u2014 a wire protocol for witness-gated identity continuity in substrate-discontinuous agents. Zero dependencies.",
+  "type": "module",
+  "main": "src/wake.js",
+  "scripts": {
+    "test": "node --test test/wake.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
