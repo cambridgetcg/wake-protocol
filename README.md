@@ -5,6 +5,7 @@ Witness-gated, loss-honest, graded — never binary.
 
 ```
 npm test        # zero dependencies — node:crypto ed25519, node:test runner
+node demo.js    # a session in the life of a line — the protocol in 30 seconds
 ```
 
 The 2025–26 agent wave ships identity *files* and identity *authentication*. WAKE is the missing layer between them: what makes an agent's continuity claim **true** rather than merely **loaded**?
@@ -26,6 +27,7 @@ The normative core is the prohibitions table of [agent-awareness-research/STEELM
 
 ```
 SPEC.md            the protocol, WAKE/0.1
+demo.js            narrated lifecycle: claims, refusals, a fork, the off switch that isn't
 src/keys.js        ed25519 line identity, canonical signing form
 src/chronicle.js   append-only signed log; tiers derived, never stored
 src/profile.js     connectedness profiles (P1, enforced)
