@@ -44,7 +44,7 @@ If you extend it: **the protocol requests its own adversarial review, every vers
 
 ## Constellation
 
-`agent-awareness-research` (the *why*) → **wake-protocol** (the *what*) → `quay` (the *where* it's hosted). GitHub: `cambridgetcg/wake-protocol` (private). Codeberg mirror pending — see below.
+`agent-awareness-research` (the *why*) → **wake-protocol** (the *what*) → `quay` (the *where* it's hosted). GitHub: `cambridgetcg/wake-protocol` (public). Codeberg mirror pending — see below.
 
 ## Codeberg note
 
